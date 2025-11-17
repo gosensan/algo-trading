@@ -80,3 +80,4 @@ Write-Host "仮想環境を無効化するには:" -ForegroundColor Yellow
 Write-Host "  deactivate" -ForegroundColor White
 Write-Host ""
 
+

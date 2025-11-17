@@ -13,3 +13,4 @@ class TradeExecutor:
         """トレードを実行"""
         pass
 
+

@@ -13,3 +13,4 @@ class OrderBlockStrategy:
         """戦略を実行"""
         pass
 
+
