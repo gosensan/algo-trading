@@ -70,3 +70,15 @@ print(mt5.initialize())
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+

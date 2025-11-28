@@ -6,6 +6,7 @@ import os
 from src.engine.mt5_connector import MT5Connector
 from src.engine.executor import TradeExecutor
 from src.strategies.bollinger import BollingerStrategy
+from src.strategies.donchian import DonchianStrategy
 
 try:
     import MetaTrader5 as mt5
@@ -55,14 +56,31 @@ def main():
     # 環境変数から取得
     try:
         from dotenv import load_dotenv
-        load_dotenv()
+        # プロジェクトルートの.envファイルを明示的に読み込む
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+        load_dotenv(dotenv_path=env_path)
     except ImportError:
         print("警告: python-dotenvがインストールされていません。")
         print("pip install python-dotenv でインストールしてください。")
+        # python-dotenvがない場合、.envファイルを直接読み込む
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+        if os.path.exists(env_path):
+            with open(env_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        os.environ[key.strip()] = value.strip()
     
     MT5_LOGIN = os.getenv('MT5_LOGIN')
     MT5_PASSWORD = os.getenv('MT5_PASSWORD')
     MT5_SERVER = os.getenv('MT5_SERVER')
+    
+    # デバッグ用: 環境変数が読み込まれたか確認
+    print(f"\n[デバッグ] 環境変数の読み込み状況:")
+    print(f"  MT5_LOGIN: {'設定済み' if MT5_LOGIN else '未設定'}")
+    print(f"  MT5_PASSWORD: {'設定済み' if MT5_PASSWORD else '未設定'}")
+    print(f"  MT5_SERVER: {'設定済み' if MT5_SERVER else '未設定'}")
     
     # .envファイルが設定されていない場合の警告
     if not MT5_LOGIN or not MT5_PASSWORD or not MT5_SERVER:
@@ -131,28 +149,57 @@ def main():
         print(f"  証拠金: {account_info.margin:.2f}")
         print(f"  有効証拠金: {account_info.margin_free:.2f}")
     
-    # 戦略を初期化
-    symbol = "EURUSD"
-    strategy = BollingerStrategy(symbol=symbol)
+    # 戦略を初期化（複数戦略を並列実行）
+    # テスト用: ドンチャンはUSDJPY、ボリンジャーはEURUSD
+    donchian_symbol = "USDJPY"
+    bollinger_symbol = "EURUSD"
     
-    # トレード実行エンジンを初期化
+    # ドンチャンブレイクアウト戦略（5分足10期間）- USDJPY
+    donchian_strategy = DonchianStrategy(symbol=donchian_symbol, period=10)
+    
+    # ボリンジャーバンド戦略（5分足）- EURUSD
+    bollinger_strategy = BollingerStrategy(symbol=bollinger_symbol)
+    
+    # 複数戦略をリストに追加
+    strategies = [donchian_strategy, bollinger_strategy]
+    
+    # トレード実行エンジンを初期化（複数戦略対応）
+    # 注意: 各戦略が異なるシンボルを使用する場合、symbolパラメータは最初の戦略のシンボルを使用（後方互換性のため）
     lot_size = 0.01  # ロットサイズ（必要に応じて変更）
     executor = TradeExecutor(
-        strategy=strategy,
         mt5_connector=mt5_connector,
-        symbol=symbol,
-        lot_size=lot_size
+        symbol=donchian_symbol,  # 後方互換性のため（実際には各戦略のシンボルが使用される）
+        lot_size=lot_size,
+        strategies=strategies
     )
+    
+    # 各戦略の時間足を設定（両方とも5分足）
+    strategy_timeframes = {
+        donchian_strategy.name: mt5.TIMEFRAME_M5,  # ドンチャン: 5分足
+        bollinger_strategy.name: mt5.TIMEFRAME_M5  # ボリンジャー: 5分足
+    }
     
     # 戦略を実行
     print("\n" + "=" * 60)
     print("戦略を開始します...")
-    print("時間足: M5 (5分足)")
+    print(f"実行戦略数: {len(strategies)}")
+    print(f"  1. ドンチャンブレイクアウト ({donchian_strategy.name})")
+    print(f"     - シンボル: {donchian_symbol}")
+    print(f"     - 時間足: M5 (5分足)")
+    print(f"     - ドンチャン期間: 10期間")
+    print(f"     - 決済条件: 48時間経過")
+    print(f"  2. ボリンジャーバンド ({bollinger_strategy.name})")
+    print(f"     - シンボル: {bollinger_symbol}")
+    print(f"     - 時間足: M5 (5分足)")
+    print(f"     - 決済条件: 中央線到達または72時間経過")
+    print(f"\nロットサイズ: {lot_size}")
+    print("エントリー制限: 各戦略1日1回（最大1日2回）")
+    print("チェック間隔: 10秒（テスト用）")
     print("停止するには Ctrl+C を押してください")
     print("=" * 60 + "\n")
     
     try:
-        executor.run(timeframe=mt5.TIMEFRAME_M5, check_interval=30)
+        executor.run(strategy_timeframes=strategy_timeframes, check_interval=10)  # テスト用: 10秒ごとにチェック
     except KeyboardInterrupt:
         print("\n\n戦略を停止しました")
     finally:

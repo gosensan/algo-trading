@@ -369,17 +369,18 @@ class MT5Connector:
             comment: コメント
         
         Returns:
-            tuple: (success, ticket) または (False, None)
+            tuple: (success, ticket, result) または (False, None, None)
+                   success=Trueの場合、resultはMT5のorder_sendの戻り値
         """
         if not self.connected:
             print("MT5に接続されていません")
-            return False, None
+            return False, None, None
         
         # シンボル情報を取得
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
             print(f"シンボル {symbol} が見つかりません")
-            return False, None
+            return False, None, None
         
         # 価格が指定されていない場合は成行注文
         if price is None:
@@ -395,8 +396,6 @@ class MT5Connector:
             "volume": volume,
             "type": order_type,
             "price": price,
-            "sl": sl if sl else 0,
-            "tp": tp if tp else 0,
             "deviation": 20,
             "magic": 234000,
             "comment": comment,
@@ -404,8 +403,21 @@ class MT5Connector:
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
         
+        # SLとTPは値がある場合のみ追加（MT5では0を設定するとエラーになる場合がある）
+        if sl and sl > 0:
+            request["sl"] = sl
+        if tp and tp > 0:
+            request["tp"] = tp
+        
         # 注文を送信
         result = mt5.order_send(request)
+        
+        # resultがNoneの場合のエラーハンドリング
+        if result is None:
+            error_code = mt5.last_error()
+            print(f"注文送信エラー: result is None (エラーコード: {error_code})")
+            print(f"リクエスト内容: {request}")
+            return False, None, None
         
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             error_code = result.retcode
@@ -445,10 +457,10 @@ class MT5Connector:
                 print("6. その後、このプログラムを再度実行してください")
                 print("=" * 60)
             
-            return False, None
+            return False, None, None
         
         print(f"注文が成功しました: チケット={result.order}, シンボル={symbol}, タイプ={order_type}, ロット={volume}")
-        return True, result.order
+        return True, result.order, result
     
     def close_position(self, ticket):
         """
@@ -458,18 +470,22 @@ class MT5Connector:
             ticket: ポジションのチケット番号
         
         Returns:
-            bool: 成功したかどうか
+            tuple: (success, profit, balance_after) または (False, None, None)
+                   success=Trueの場合、profitは利益、balance_afterは決済後の残高
         """
         if not self.connected:
-            return False
+            return False, None, None
         
         # ポジション情報を取得
         position = mt5.positions_get(ticket=ticket)
         if position is None or len(position) == 0:
             print(f"ポジション {ticket} が見つかりません")
-            return False
+            return False, None, None
         
         position = position[0]
+        
+        # 決済前の利益を取得
+        profit_before = position.profit
         
         # 決済注文を作成
         order_type = mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
@@ -491,10 +507,14 @@ class MT5Connector:
         
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print(f"決済エラー: {result.retcode} - {result.comment}")
-            return False
+            return False, None, None
         
-        print(f"ポジション {ticket} を決済しました")
-        return True
+        # 決済後の残高を取得
+        account_info = mt5.account_info()
+        balance_after = account_info.balance if account_info else None
+        
+        print(f"ポジション {ticket} を決済しました（利益: {profit_before:.2f}）")
+        return True, profit_before, balance_after
     
     def get_positions(self, symbol=None):
         """開いているポジションを取得"""

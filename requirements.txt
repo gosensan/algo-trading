@@ -2,3 +2,4 @@ meta-trader5
 pandas
 numpy
 python-dotenv
+portalocker
