@@ -1,6 +1,6 @@
 """
 ドンチャンブレイクアウト戦略
-5分足10期間のドンチャンラインを実線が突破してクローズした時のみエントリー
+4時間足10期間のドンチャンラインを実線が突破してクローズした時のみエントリー
 """
 import pandas as pd
 import numpy as np
@@ -110,17 +110,21 @@ class DonchianStrategy:
             if info is not None and hasattr(info, 'point') and info.point > 0:
                 point = info.point
             else:
-                # シンボル名から推測（JPYペアは0.001、それ以外は0.00001）
+                # シンボル名から推測
                 if 'JPY' in self.symbol:
-                    point = 0.001
+                    point = 0.001  # JPYペアは0.001
+                elif 'XAU' in self.symbol or 'GOLD' in self.symbol:
+                    point = 0.01  # ゴールドは0.01
                 else:
-                    point = 0.00001
+                    point = 0.00001  # その他の通貨ペアは0.00001
         except Exception as e:
-            # シンボル名から推測（JPYペアは0.001、それ以外は0.00001）
+            # シンボル名から推測
             if 'JPY' in self.symbol:
-                point = 0.001
+                point = 0.001  # JPYペアは0.001
+            elif 'XAU' in self.symbol or 'GOLD' in self.symbol:
+                point = 0.01  # ゴールドは0.01
             else:
-                point = 0.00001
+                point = 0.00001  # その他の通貨ペアは0.00001
         
         tol = point * 0.5  # 誤差許容（0.5ティック分）
         

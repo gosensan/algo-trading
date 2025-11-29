@@ -150,14 +150,14 @@ def main():
         print(f"  有効証拠金: {account_info.margin_free:.2f}")
     
     # 戦略を初期化（複数戦略を並列実行）
-    # テスト用: ドンチャンはUSDJPY、ボリンジャーはEURUSD
-    donchian_symbol = "USDJPY"
+    # 本番仕様: ドンチャンはXAUUSD（4時間足）、ボリンジャーはEURUSD（4時間足）
+    donchian_symbol = "XAUUSD"
     bollinger_symbol = "EURUSD"
     
-    # ドンチャンブレイクアウト戦略（5分足10期間）- USDJPY
+    # ドンチャンブレイクアウト戦略（4時間足10期間）- XAUUSD
     donchian_strategy = DonchianStrategy(symbol=donchian_symbol, period=10)
     
-    # ボリンジャーバンド戦略（5分足）- EURUSD
+    # ボリンジャーバンド戦略（4時間足）- EURUSD
     bollinger_strategy = BollingerStrategy(symbol=bollinger_symbol)
     
     # 複数戦略をリストに追加
@@ -173,10 +173,10 @@ def main():
         strategies=strategies
     )
     
-    # 各戦略の時間足を設定（両方とも5分足）
+    # 各戦略の時間足を設定（両方とも4時間足）
     strategy_timeframes = {
-        donchian_strategy.name: mt5.TIMEFRAME_M5,  # ドンチャン: 5分足
-        bollinger_strategy.name: mt5.TIMEFRAME_M5  # ボリンジャー: 5分足
+        donchian_strategy.name: mt5.TIMEFRAME_H4,  # ドンチャン: 4時間足
+        bollinger_strategy.name: mt5.TIMEFRAME_H4  # ボリンジャー: 4時間足
     }
     
     # 戦略を実行
@@ -185,21 +185,21 @@ def main():
     print(f"実行戦略数: {len(strategies)}")
     print(f"  1. ドンチャンブレイクアウト ({donchian_strategy.name})")
     print(f"     - シンボル: {donchian_symbol}")
-    print(f"     - 時間足: M5 (5分足)")
+    print(f"     - 時間足: H4 (4時間足)")
     print(f"     - ドンチャン期間: 10期間")
     print(f"     - 決済条件: 48時間経過")
     print(f"  2. ボリンジャーバンド ({bollinger_strategy.name})")
     print(f"     - シンボル: {bollinger_symbol}")
-    print(f"     - 時間足: M5 (5分足)")
+    print(f"     - 時間足: H4 (4時間足)")
     print(f"     - 決済条件: 中央線到達または72時間経過")
     print(f"\nロットサイズ: {lot_size}")
     print("エントリー制限: 各戦略1日1回（最大1日2回）")
-    print("チェック間隔: 10秒（テスト用）")
+    print("チェック間隔: 300秒（5分）")
     print("停止するには Ctrl+C を押してください")
     print("=" * 60 + "\n")
     
     try:
-        executor.run(strategy_timeframes=strategy_timeframes, check_interval=10)  # テスト用: 10秒ごとにチェック
+        executor.run(strategy_timeframes=strategy_timeframes, check_interval=300)  # 本番用: 5分ごとにチェック
     except KeyboardInterrupt:
         print("\n\n戦略を停止しました")
     finally:
