@@ -1,0 +1,65 @@
+{
+  "system": {
+    "max_total_risk": 1.5
+  },
+  "correlation_groups": {
+    "JPY": ["USDJPY", "GBPJPY", "CHFJPY", "EURJPY"],
+    "USD": ["EURUSD", "GBPUSD", "AUDUSD"]
+  },
+  "major_news": [
+    {
+      "name": "FOMC Rate Decision",
+      "time": "2025-12-17T19:00:00",
+      "block_minutes": 60
+    },
+    {
+      "name": "NFP",
+      "time": "2025-12-05T13:30:00",
+      "block_minutes": 45
+    }
+  ],
+  "trading_hours": {
+    "enabled": true,
+    "allowed_hours": [
+      {
+        "day": "monday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "tuesday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "wednesday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "thursday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "friday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "saturday",
+        "start": "00:00",
+        "end": "23:59"
+      },
+      {
+        "day": "sunday",
+        "start": "00:00",
+        "end": "23:59"
+      }
+    ]
+  },
+  "position_limits": {
+    "max_positions_per_strategy": 1,
+    "max_total_positions": 2
+  }
+}
